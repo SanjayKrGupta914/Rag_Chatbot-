@@ -51,13 +51,15 @@ app.add_middleware(
 )
 
 # Constants
-UPLOAD_DIR = Path("uploads")
+import tempfile
+UPLOAD_DIR = Path(tempfile.gettempdir()) / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
 MAX_FILE_SIZE_MB = 200
 MAX_PAGES = 160
 MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 ALLOWED_EXTENSIONS = {'.pdf'}
 TEMP_FILE_EXPIRY_HOURS = 1
+
 
 import unicodedata
 

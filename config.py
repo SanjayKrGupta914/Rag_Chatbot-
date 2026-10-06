@@ -5,6 +5,7 @@ Supports environment variable configuration and `.env` file loading
 
 import os
 from pathlib import Path
+import tempfile
 from typing import Optional
 
 # Load .env file if it exists
@@ -30,7 +31,7 @@ class Config:
     # File Upload
     MAX_FILE_SIZE_MB: int = int(os.getenv("MAX_FILE_SIZE_MB", "200"))
     MAX_PAGES: int = int(os.getenv("MAX_PAGES", "160"))
-    UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", "uploads")
+    UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", os.path.join(tempfile.gettempdir(), "uploads"))
     TEMP_FILE_EXPIRY_HOURS: int = int(os.getenv("TEMP_FILE_EXPIRY_HOURS", "1"))
     
     # Security
@@ -154,6 +155,8 @@ def update_gemini_config(api_key: Optional[str] = None, model: Optional[str] = N
         new_lines.append(f"GEMINI_API_KEY={api_key.strip()}\n")
     if not model_updated and model is not None:
         new_lines.append(f"GEMINI_MODEL={model.strip()}\n")
-        
-    with env_path.open("w", encoding="utf-8") as f:
-        f.writelines(new_lines)
+    try:
+        with env_path.open("w", encoding="utf-8") as f:
+            f.writelines(new_lines)
+    except OSError as e:
+        print(f"Warning: Could not persist config to .env file (read-only file system?): {e}")
