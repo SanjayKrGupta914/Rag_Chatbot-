@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Ink - Diagnostics</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            max-width: 600px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+        }
+        
+        .checks {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .check {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            border-left: 4px solid #ddd;
+        }
+        
+        .check.success {
+            background: #f0fdf4;
+            border-left-color: #22c55e;
+        }
+        
+        .check.error {
+            background: #fef2f2;
+            border-left-color: #ef4444;
+        }
+        
+        .check.loading {
+            background: #f0f9ff;
+            border-left-color: #3b82f6;
+        }
+        
+        .icon {
+            font-size: 1.5rem;
+            margin-right: 15px;
+            min-width: 24px;
+        }
+        
+        .info {
+            flex: 1;
+        }
+        
+        .label {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.95rem;
+        }
+        
+        .message {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 4px;
+        }
+        
+        .spinner {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .actions {
+            margin-top: 30px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+        
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+        
+        .status-text {
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            background: #fef3c7;
+            border-radius: 8px;
+            color: #92400e;
+            font-size: 0.9rem;
+        }
+        
+        .status-text.success {
+            background: #dcfce7;
+            color: #166534;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 PDF Ink Diagnostics</h1>
+        <p class="subtitle">Checking your setup...</p>
+        
+        <div class="checks" id="checks">
+            <div class="check loading">
+                <div class="icon">⏳</div>
+                <div class="info">
+                    <div class="label">Checking Browser Environment</div>
+                    <div class="message">Analyzing current setup...</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="actions">
+            <button class="btn-primary" onclick="location.href='http://localhost:8000'">
+                Go to Application
+            </button>
+            <button class="btn-secondary" onclick="location.reload()">
+                Refresh Diagnostics
+            </button>
+        </div>
+        
+        <div class="status-text" id="status"></div>
+    </div>
+
+    <script>
+        const checks = document.getElementById('checks');
+        const status = document.getElementById('status');
+        
+        async function runDiagnostics() {
+            checks.innerHTML = '';
+            
+            // Check 1: Browser URL
+            const check1 = createCheck(
+                'Browser URL',
+                window.location.href,
+                window.location.port === '8000' || window.location.port === '',
+                'You are on the correct port' + (window.location.port !== '8000' ? ' (static file access)' : '')
+            );
+            checks.appendChild(check1);
+            
+            // Check 2: API Base URL
+            const baseURL = getBaseURL();
+            const check2 = createCheck(
+                'API Base URL',
+                baseURL,
+                baseURL.includes('8000'),
+                'API calls will target: ' + baseURL
+            );
+            checks.appendChild(check2);
+            
+            // Check 3: Health Check
+            const healthCheck = await testHealth();
+            const check3 = createCheck(
+                'Backend Health Check',
+                healthCheck.success ? '✅ Healthy' : '❌ Not responding',
+                healthCheck.success,
+                healthCheck.success ? 'Backend is running and responsive' : 'Cannot reach backend on ' + getBaseURL() + '/api/health'
+            );
+            checks.appendChild(check3);
+            
+            // Update status
+            if (healthCheck.success) {
+                status.textContent = '✅ All systems go! Your setup is working correctly. Open the application.';
+                status.classList.add('success');
+            } else {
+                status.innerHTML = `
+                    ⚠️ <strong>Backend not responding</strong><br>
+                    Make sure you've run: <code>python main.py</code><br>
+                    And it shows: "Uvicorn running on http://0.0.0.0:8000"
+                `;
+            }
+        }
+        
+        function createCheck(label, value, success, message) {
+            const div = document.createElement('div');
+            div.className = `check ${success ? 'success' : 'error'}`;
+            
+            div.innerHTML = `
+                <div class="icon">${success ? '✅' : '❌'}</div>
+                <div class="info">
+                    <div class="label">${label}</div>
+                    <div class="message">${message}</div>
+                    <div style="font-size: 0.8rem; color: #999; margin-top: 4px; font-family: monospace;">${value}</div>
+                </div>
+            `;
+            
+            return div;
+        }
+        
+        function getBaseURL() {
+            const url = new URL(window.location.href);
+            if (window.location.port === '5500' || window.location.port === '3000' || window.location.port === '3001') {
+                return 'http://localhost:8000';
+            }
+            return window.location.origin;
+        }
+        
+        async function testHealth() {
+            try {
+                const baseURL = getBaseURL();
+                const response = await fetch(`${baseURL}/api/health`, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    return { success: true, data };
+                } else {
+                    return { success: false, error: `HTTP ${response.status}` };
+                }
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+        
+        // Run on load
+        window.addEventListener('load', runDiagnostics);
+    </script>
+</body>
+</html>
