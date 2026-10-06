@@ -76,6 +76,8 @@ class PDFExtractorAPI {
                 if (xhr.status >= 200 && xhr.status < 300) {
                     try { resolve(JSON.parse(xhr.responseText)); }
                     catch { reject(new Error('Invalid server response')); }
+                } else if (xhr.status === 413) {
+                    reject(new Error('File too large. Vercel allows a maximum of 4.5MB per upload. Please compress your PDF and try again.'));
                 } else {
                     try {
                         const err = JSON.parse(xhr.responseText);
