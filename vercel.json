@@ -23,5 +23,11 @@
       "src": "/(.*)",
       "dest": "/static/$1"
     }
-  ]
+  ],
+  "functions": {
+    "main.py": {
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  }
 }
